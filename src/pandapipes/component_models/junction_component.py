@@ -137,16 +137,8 @@ class Junction(NodeComponent):
                 ("tfluid_k", 'f8'),
                 ("height_m", 'f8'),
                 ('in_service', 'bool'),
-                ('type', dtype(object))]
-
-    @classmethod
-    def geodata(cls):
-        """
-
-        :return:
-        :rtype:
-        """
-        return [("x", "f8"), ("y", "f8")]
+                ('type', dtype(object)),
+                ('geo', dtype(str))]
 
     @classmethod
     def get_result_table(cls, net):

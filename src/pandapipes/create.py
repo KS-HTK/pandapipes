@@ -2,8 +2,11 @@
 # and Energy System Technology (IEE), Kassel, and University of Kassel. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
+from typing import Iterable, Tuple, List
 import numpy as np
 import pandas as pd
+import geojson
+# TODO: Why are pandapower internal use functions (_[…] See PEP 8) imported here?
 from pandapower.create import _get_multiple_index_with_check, _get_index_with_check, _set_entries, \
     _check_node_element, _check_multiple_node_elements, _set_multiple_entries, \
     _add_multiple_branch_geodata, _check_branch_element, _check_multiple_branch_elements
@@ -68,7 +71,7 @@ def create_empty_network(name="", fluid=None, add_stdtypes=True):
 
 
 def create_junction(net, pn_bar, tfluid_k, height_m=0, name=None, index=None, in_service=True,
-                    type="junction", geodata=None, **kwargs):
+                    type_="junction", geodata=None, **kwargs):
     """
     Adds one junction in table net["junction"]. Junctions are the nodes of the network that
     all other elements connect to.
@@ -89,9 +92,9 @@ def create_junction(net, pn_bar, tfluid_k, height_m=0, name=None, index=None, in
     :type index: int, default None
     :param in_service: True if the junction is in service or False if it is out of service
     :type in_service: boolean, default True
-    :param type: not used yet - Designed for type differentiation on pandas lookups (e.g. household\
+    :param type_: not used yet - Designed for type differentiation on pandas lookups (e.g. household\
             connection vs. crossing)
-    :type type: string, default "junction"
+    :type type_: string, default "junction"
     :param geodata: Coordinates used for plotting
     :type geodata: (x,y)-tuple, default None
     :param kwargs: Additional keyword arguments will be added as further columns to the\
@@ -107,20 +110,25 @@ def create_junction(net, pn_bar, tfluid_k, height_m=0, name=None, index=None, in
     index = _get_index_with_check(net, "junction", index)
 
     cols = ["name", "pn_bar", "tfluid_k", "height_m", "in_service", "type"]
-    vals = [name, pn_bar, tfluid_k, height_m, bool(in_service), type]
+    vals = [name, pn_bar, tfluid_k, height_m, bool(in_service), type_]
 
     _set_entries(net, "junction", index, **dict(zip(cols, vals)), **kwargs)
 
-    if geodata is not None:
-        if len(geodata) != 2:
-            raise UserWarning("geodata must be given as (x, y) tuple")
-        net["junction_geodata"].loc[index, ["x", "y"]] = geodata
+    if geodata:
+        if isinstance(geodata, tuple):
+            if len(geodata) != 2:
+                raise UserWarning("geodata must be given as (x, y) tuple")
+            geodata = f'{{"coordinates": [{float(geodata[0])}, {float(geodata[1])}], "type": "Point"}}'
+        else:
+            raise UserWarning("geodata must be a valid coordinate tuple")
+
+        net.junction.at[index, "geo"] = geodata
 
     return index
 
 
 def create_sink(net, junction, mdot_kg_per_s, scaling=1., name=None, index=None, in_service=True,
-                type='sink', **kwargs):
+                type_='sink', **kwargs):
     """
     Adds one sink in table net["sink"].
 
@@ -139,8 +147,8 @@ def create_sink(net, junction, mdot_kg_per_s, scaling=1., name=None, index=None,
     :type index: int, default None
     :param in_service: True for in service, False for out of service
     :type in_service: bool, default True
-    :param type: Type variable to classify the sink
-    :type type: str, default None
+    :param type_: Type variable to classify the sink
+    :type type_: str, default None
     :param kwargs: Additional keyword arguments will be added as further columns to the\
             net["sink"] table
     :return: index - The unique ID of the created element
@@ -156,14 +164,14 @@ def create_sink(net, junction, mdot_kg_per_s, scaling=1., name=None, index=None,
     index = _get_index_with_check(net, "sink", index)
 
     cols = ["name", "junction", "mdot_kg_per_s", "scaling", "in_service", "type"]
-    vals = [name, junction, mdot_kg_per_s, scaling, bool(in_service), type]
+    vals = [name, junction, mdot_kg_per_s, scaling, bool(in_service), type_]
     _set_entries(net, "sink", index, **dict(zip(cols, vals)), **kwargs)
 
     return index
 
 
 def create_source(net, junction, mdot_kg_per_s, scaling=1., name=None, index=None, in_service=True,
-                  type='source', **kwargs):
+                  type_='source', **kwargs):
     """
     Adds one source in table net["source"].
 
@@ -182,8 +190,8 @@ def create_source(net, junction, mdot_kg_per_s, scaling=1., name=None, index=Non
     :type index: int, default None
     :param in_service: True for in service, False for out of service
     :type in_service: bool, default True
-    :param type: Type variable to classify the source
-    :type type: str, default None
+    :param type_: Type variable to classify the source
+    :type type_: str, default None
     :param kwargs: Additional keyword arguments will be added as further columns to the\
             net["source"] table
     :return: index - The unique ID of the created element
@@ -200,7 +208,7 @@ def create_source(net, junction, mdot_kg_per_s, scaling=1., name=None, index=Non
     index = _get_index_with_check(net, "source", index)
 
     cols = ["name", "junction", "mdot_kg_per_s", "scaling", "in_service", "type"]
-    vals = [name, junction, mdot_kg_per_s, scaling, bool(in_service), type]
+    vals = [name, junction, mdot_kg_per_s, scaling, bool(in_service), type_]
     _set_entries(net, "source", index, **dict(zip(cols, vals)), **kwargs)
 
     return index
@@ -208,7 +216,7 @@ def create_source(net, junction, mdot_kg_per_s, scaling=1., name=None, index=Non
 
 def create_mass_storage(net, junction, mdot_kg_per_s, init_m_stored_kg=0, min_m_stored_kg=0.,
                         max_m_stored_kg=np.inf, scaling=1., name=None, index=None,
-                        in_service=True, type="mass_storage", **kwargs):
+                        in_service=True, type_="mass_storage", **kwargs):
     """
     Adds one storage entry in table net["mass_storage"]. Not suitable for thermal storage tanks.
 
@@ -236,8 +244,8 @@ def create_mass_storage(net, junction, mdot_kg_per_s, init_m_stored_kg=0, min_m_
     :type index: int, default None
     :param in_service: True for in service, False for out of service
     :type in_service: bool, default True
-    :param type: Type variable to classify the storage
-    :type type: str, default mass_storage
+    :param type_: Type variable to classify the storage
+    :type type_: str, default mass_storage
     :param kwargs: Additional keyword arguments will be added as further columns to the\
             net["mass_storage"] table
     :return: index - The unique ID of the created element
@@ -265,13 +273,13 @@ def create_mass_storage(net, junction, mdot_kg_per_s, init_m_stored_kg=0, min_m_
     cols = ["name", "junction", "mdot_kg_per_s", "scaling", "init_m_stored_kg", "min_m_stored_kg",
             "max_m_stored_kg", "in_service", "type"]
     vals = [name, junction, mdot_kg_per_s, scaling, init_m_stored_kg, min_m_stored_kg,
-            max_m_stored_kg, bool(in_service), type]
+            max_m_stored_kg, bool(in_service), type_]
     _set_entries(net, "mass_storage", index, **dict(zip(cols, vals)), **kwargs)
 
     return index
 
 
-def create_ext_grid(net, junction, p_bar=None, t_k=None, type="auto", name=None, in_service=True,
+def create_ext_grid(net, junction, p_bar=None, t_k=None, type_="auto", name=None, in_service=True,
                     index=None, **kwargs):
     """
     Creates an external grid and adds it to the table net["ext_grid"]. It transfers the junction
@@ -287,7 +295,7 @@ def create_ext_grid(net, junction, p_bar=None, t_k=None, type="auto", name=None,
     :type p_bar: float, default None
     :param t_k: The fixed temperature at the external grid
     :type t_k: float, default None
-    :param type: The external grid type denotes the values that are fixed at the respective node:\n
+    :param type_: The external grid type denotes the values that are fixed at the respective node:\n
             - "auto": Will automatically assign one of the following types based on the input for \
                       p_bar and t_k \n
             - "p": The pressure is fixed, the node acts as a slack node for the mass flow. \n
@@ -295,7 +303,7 @@ def create_ext_grid(net, junction, p_bar=None, t_k=None, type="auto", name=None,
                    node's mix temperature. Please note that pandapipes cannot check for \
                    inconsistencies in the formulation of heat transfer equations yet. \n
             - "pt": The external grid shows both "p" and "t" behavior.
-    :type type: str, default "auto"
+    :type type_: str, default "auto"
     :param name: A name tag for this ext_grid
     :type name: str, default None
     :param in_service: True for in service, False for out of service
@@ -317,10 +325,10 @@ def create_ext_grid(net, junction, p_bar=None, t_k=None, type="auto", name=None,
     _check_junction_element(net, junction)
     index = _get_index_with_check(net, "ext_grid", index, name="external grid")
 
-    type = _auto_ext_grid_type(p_bar, t_k, type, ExtGrid)
+    type_ = _auto_ext_grid_type(p_bar, t_k, type_, ExtGrid)
 
     cols = ["name", "junction", "p_bar", "t_k", "in_service", "type"]
-    vals = [name, junction, p_bar, t_k, bool(in_service), type]
+    vals = [name, junction, p_bar, t_k, bool(in_service), type_]
     _set_entries(net, "ext_grid", index, **dict(zip(cols, vals)), **kwargs)
 
     return index
@@ -445,8 +453,9 @@ def create_pipe(net, from_junction, to_junction, std_type, length_km, k_mm=0.2, 
          "text_k": text_k}
     _set_entries(net, "pipe", index, **v, **kwargs)
 
-    if geodata is not None:
-        net["pipe_geodata"].at[index, "coords"] = geodata
+    if geodata and hasattr(geodata, '__iter__'):
+        geo = [[x, y] for x, y in geodata]
+        net.pipe.at[index, "geo"] = f'{{"coordinates": {geo}, "type": "LineString"}}'
 
     return index
 
@@ -522,7 +531,9 @@ def create_pipe_from_parameters(net, from_junction, to_junction, length_km, diam
     _set_entries(net, "pipe", index, **v, **kwargs)
 
     if geodata is not None:
-        net["pipe_geodata"].at[index, "coords"] = geodata
+        net.pipe.at[index, "geo"] = f'{{"coordinates": {geodata}, "type": "LineString"}}'
+    else:
+        net.pipe.at[index, "geo"] = None
 
     return index
 
@@ -624,7 +635,7 @@ def create_pump(net, from_junction, to_junction, std_type, name=None, index=None
 def create_pump_from_parameters(net, from_junction, to_junction, new_std_type_name,
                                 pressure_list=None, flowrate_list=None, reg_polynomial_degree=None,
                                 poly_coefficents=None, name=None, index=None, in_service=True,
-                                type="pump", **kwargs):
+                                type_="pump", **kwargs):
     """
     Adds one pump in table net["pump"].
 
@@ -666,8 +677,8 @@ def create_pump_from_parameters(net, from_junction, to_junction, new_std_type_na
     :type index: int, default None
     :param in_service: True if the pump is in service or False if it is out of service
     :type in_service: bool, default True
-    :param type:  type variable to classify the pump
-    :type type: str, default "pump"
+    :param type_:  type variable to classify the pump
+    :type type_: str, default "pump"
     :param kwargs: Additional keyword arguments will be added as further columns to the\
             net["pump"] table
     :type kwargs: dict
@@ -1131,17 +1142,37 @@ def create_junctions(net, nr_junctions, pn_bar, tfluid_k, height_m=0, name=None,
     add_new_component(net, Junction)
 
     index = _get_multiple_index_with_check(net, "junction", index, nr_junctions)
-    entries = {"pn_bar": pn_bar, "type": type, "tfluid_k": tfluid_k, "height_m": height_m,
-               "in_service": in_service, "name": name}
-    _set_multiple_entries(net, "junction", index, **entries, **kwargs)
 
+    def _geodata_to_geojson(data: Iterable[Tuple[float, float] | Tuple[int, int]]) -> List[str]:
+        geo = []
+        for g in data:
+            if isinstance(g, tuple):
+                if len(g) != 2:
+                    raise ValueError("geodata tuples must be of length 2")
+                x, y = g
+                geo.append(f'{{"coordinates": [{x}, {y}], "type": "Point"}}')
+            else:
+                raise ValueError("geodata must be iterable of tuples of (x, y) coordinates")
+
+    # works with a 2-tuple or a matching array
     if geodata is not None:
-        # works with a 2-tuple or a matching array
-        net.junction_geodata = pd.concat([net.junction_geodata, pd.DataFrame(
-            np.zeros((len(index), len(net.junction_geodata.columns)), dtype=int), index=index,
-            columns=net.junction_geodata.columns)])
-        net.junction_geodata.loc[index, :] = np.nan
-        net.junction_geodata.loc[index, ["x", "y"]] = geodata
+        if isinstance(geodata, tuple):
+            if len(geodata) != 2:
+                raise ValueError("geodata must be array of tuples or tuple of (x, y) coordinates")
+            x, y = geodata
+            geo = [f'{{"coordinates": [{x}, {y}], "type": "Point"}}'] * nr_junctions
+        elif hasattr(geodata, '__iter__'):
+            geo = [f'{{"coordinates": [{x}, {y}], "type": "Point"}}' for x, y in geodata]
+        else:
+            raise ValueError("geodata must be array of tuples or tuple of (x, y) coordinates")
+        if len(geo) != nr_junctions:
+            raise ValueError("geodata must be array of tuples or tuple of (x, y) coordinates")
+    else:
+        geo = [None] * nr_junctions
+
+    entries = {"pn_bar": pn_bar, "type": type, "tfluid_k": tfluid_k, "height_m": height_m,
+               "in_service": in_service, "name": name, "geo": geo}
+    _set_multiple_entries(net, "junction", index, **entries, **kwargs)
 
     return index
 
@@ -1370,7 +1401,7 @@ def create_pipes(net, from_junctions, to_junctions, std_type, length_km, k_mm=0.
     _set_multiple_entries(net, "pipe", index, **entries, **kwargs)
 
     if geodata is not None:
-        _add_multiple_branch_geodata(net, "pipe", geodata, index)
+        _add_multiple_branch_geodata(net, geodata, index, "pipe")
     return index
 
 
@@ -1447,7 +1478,7 @@ def create_pipes_from_parameters(net, from_junctions, to_junctions, length_km, d
     _set_multiple_entries(net, "pipe", index, **entries, **kwargs)
 
     if geodata is not None:
-        _add_multiple_branch_geodata(net, "pipe", geodata, index)
+        _add_multiple_branch_geodata(net, geodata, index, table="pipe")
     return index
 
 

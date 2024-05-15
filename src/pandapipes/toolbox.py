@@ -214,8 +214,6 @@ def reindex_junctions(net, junction_lookup):
     for element, value in element_junction_tuples(net=net):
         if element in net.keys():
             net[element][value] = get_indices(net[element][value], junction_lookup)
-    net["junction_geodata"].set_index(get_indices(net["junction_geodata"].index, junction_lookup),
-                                      inplace=True)
     return junction_lookup
 
 
@@ -433,7 +431,6 @@ def drop_junctions(net, junctions, drop_elements=True):
     :return: No output.
     """
     net["junction"].drop(junctions, inplace=True)
-    net["junction_geodata"].drop(set(junctions) & set(net["junction_geodata"].index), inplace=True)
     if "res_junction" in net.keys():
         res_junctions = net.res_junction.index.intersection(junctions)
         net["res_junction"].drop(res_junctions, inplace=True)

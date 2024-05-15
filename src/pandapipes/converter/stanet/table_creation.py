@@ -4,6 +4,9 @@
 
 from itertools import chain
 
+import re
+import ast
+
 import numpy as np
 import pandas as pd
 
@@ -91,7 +94,7 @@ def create_junctions_from_nodes(net, stored_data, net_params, index_mapping, add
         stanet_active=node_table.ISACTIVE.values.astype(np.bool_),
         stanet_system=CLIENT_TYPES_OF_PIPES[MAIN_PIPE_TYPE], **add_info)
     for eg_junc, p_bar, t_k in zip(junction_indices[eg_ind], eg_press, eg_temps):
-        pandapipes.create_ext_grid(net, eg_junc, p_bar, t_k, type="pt",
+        pandapipes.create_ext_grid(net, eg_junc, p_bar, t_k, type_="pt",
                                    stanet_system=CLIENT_TYPES_OF_PIPES[MAIN_PIPE_TYPE])
     index_mapping["nodes"] = dict(zip(stanet_nrs, junction_indices))
 
@@ -116,6 +119,19 @@ def create_valve_and_pipe(net, stored_data, index_mapping, net_params, stanet_li
     """
     if "valves" not in stored_data:
         return
+
+    def _get_coords_from_geojson(gj_str):
+        pattern = r'"coordinates"\s*:\s*((?:\[(?:\[[^]]+],?\s*)+\])|\[[^]]+\])'
+        matches = re.findall(pattern, gj_str)
+
+        if not matches:
+            return None
+        if len(matches) > 1:
+            raise ValueError("More than one match found in GeoJSON string")
+        for m in matches:
+            return ast.literal_eval(m)
+        return None
+
     logger.info("Creating all vallves with their pipes.")
     node_mapping = index_mapping["nodes"]
     valves = stored_data['valves']
@@ -147,10 +163,10 @@ def create_valve_and_pipe(net, stored_data, index_mapping, net_params, stanet_li
             )
         else:
             j_ref = net.junction.loc[node_mapping[from_stanet_nr], :]
-            j_ref_geodata = net.junction_geodata.loc[node_mapping[from_stanet_nr], :]
+            geodata = tuple(_get_coords_from_geojson(j_ref.geo))
             j_aux = pandapipes.create_junction(
                 net, np.NaN, tfluid_k=net_params["medium_temp_K"], height_m=j_ref['height_m'],
-                name='aux_' + j_ref['stanet_id'], geodata=(j_ref_geodata.x, j_ref_geodata.y),
+                name='aux_' + j_ref['stanet_id'], geodata=geodata,
                 stanet_nr=-999, stanet_id='aux_' + j_ref['stanet_id'], p_stanet=np.NaN,
                 stanet_active=bool(row.ISACTIVE), **add_info
             )

@@ -227,8 +227,8 @@ def create_simple_collections(net, respect_valves=False, respect_in_service=True
     # don't hide lines if switches are plotted
 
     # create geocoord if none are available
-    if len(net.junction_geodata) == 0 and len(net.pipe_geodata) == 0:
-        logger.warning("No or insufficient geodata available --> Creating artificial coordinates." +
+    if len(net.junction.geo.dropna()) == 0 and len(net.pipe.geo.dropna()) == 0:
+        logger.warning("No geodata available --> Creating artificial coordinates." +
                        " This may take some time")
         create_generic_coordinates(net, library=library)
 

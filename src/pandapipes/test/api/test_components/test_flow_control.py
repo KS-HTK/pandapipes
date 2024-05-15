@@ -21,7 +21,7 @@ def test_flow_control_simple_heat(use_numba):
     pandapipes.create_flow_control(net, j2, j3, 2, 0.1)
     pandapipes.create_flow_control(net, j5, j6, 2, 0.1, control_active=False)
 
-    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=360, type="pt")
+    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=360, type_="pt")
 
     pandapipes.create_sink(net, j8, 3)
 

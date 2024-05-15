@@ -269,16 +269,8 @@ class Pipe(BranchWInternalsComponent):
                 ("qext_w", 'f8'),
                 ("sections", "u4"),
                 ("in_service", 'bool'),
-                ("type", dtype(object))]
-
-    @classmethod
-    def geodata(cls):
-        """
-
-        :return:
-        :rtype:
-        """
-        return [("coords", dtype(object))]
+                ("type", dtype(object)),
+                ("geo", dtype(str))]
 
     @classmethod
     def get_result_table(cls, net):

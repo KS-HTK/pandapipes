@@ -30,7 +30,7 @@ def test_pipe_velocity_results(use_numba):
     pandapipes.create_pipe_from_parameters(net, 0, 1, 6.0, d, k_mm=.5, sections=1)
     pandapipes.create_pipe_from_parameters(net, 1, 2, 6.0, d, k_mm=.5, sections=1)
     pandapipes.create_pipe_from_parameters(net, 1, 3, 6.0, d, k_mm=.5, sections=1)
-    pandapipes.create_ext_grid(net, 0, p_bar=51 - 1.01325, t_k=285.15, type="pt")
+    pandapipes.create_ext_grid(net, 0, p_bar=51 - 1.01325, t_k=285.15, type_="pt")
     pandapipes.create_sink(net, 2, mdot_kg_per_s=0.82752 * 45000 / 3600 / 3)
     pandapipes.create_sink(net, 3, mdot_kg_per_s=0.82752 * 45000 / 3600 / 2)
     _add_fluid_to_net(net, pandapipes.create_constant_fluid(
@@ -54,7 +54,7 @@ def test_pipe_velocity_results(use_numba):
     pandapipes.create_pipe_from_parameters(net, 0, 1, 6.0, d, k_mm=.5, sections=3)
     pandapipes.create_pipe_from_parameters(net, 1, 2, 6.0, d, k_mm=.5, sections=4)
     pandapipes.create_pipe_from_parameters(net, 1, 3, 6.0, d, k_mm=.5, sections=2)
-    pandapipes.create_ext_grid(net, 0, p_bar=51 - 1.01325, t_k=285.15, type="pt")
+    pandapipes.create_ext_grid(net, 0, p_bar=51 - 1.01325, t_k=285.15, type_="pt")
     pandapipes.create_sink(net, 2, mdot_kg_per_s=0.82752 * 45000 / 3600 / 3)
     pandapipes.create_sink(net, 3, mdot_kg_per_s=0.82752 * 45000 / 3600 / 2)
     _add_fluid_to_net(net, pandapipes.create_constant_fluid(

@@ -29,7 +29,7 @@ def test_gas_internal_nodes(use_numba):
     pandapipes.create_junction(net, pn_bar=51, tfluid_k=285.15)
     pandapipes.create_junction(net, pn_bar=51, tfluid_k=285.15)
     pandapipes.create_pipe_from_parameters(net, 0, 1, 12.0, d, k_mm=.5, sections=12)
-    pandapipes.create_ext_grid(net, 0, p_bar=51 - 1.01325, t_k=285.15, type="pt")
+    pandapipes.create_ext_grid(net, 0, p_bar=51 - 1.01325, t_k=285.15, type_="pt")
     pandapipes.create_sink(net, 1, mdot_kg_per_s=0.82752 * 45000 / 3600)
     _add_fluid_to_net(net, pandapipes.create_constant_fluid(
         name="natural_gas", fluid_type="gas", viscosity=11.93e-6, heat_capacity=2185,
@@ -86,7 +86,7 @@ def test_temperature_internal_nodes_single_pipe(use_numba):
     pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     pandapipes.create_pipe_from_parameters(net, 0, 1, 6, d, k_mm=.1, sections=6, alpha_w_per_m2k=5)
-    pandapipes.create_ext_grid(net, 0, p_bar=5, t_k=330, type="pt")
+    pandapipes.create_ext_grid(net, 0, p_bar=5, t_k=330, type_="pt")
     pandapipes.create_sink(net, 1, mdot_kg_per_s=1)
 
     pandapipes.create_fluid_from_lib(net, "water", overwrite=True)
@@ -136,7 +136,7 @@ def test_temperature_internal_nodes_tee_2ab_1zu(use_numba):
     j1 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     j2 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     j3 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
-    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type="pt")
+    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type_="pt")
     pandapipes.create_sink(net, j2, mdot_kg_per_s=1)
     pandapipes.create_sink(net, j3, mdot_kg_per_s=1)
 
@@ -183,8 +183,8 @@ def test_temperature_internal_nodes_tee_2zu_1ab(use_numba):
                                            alpha_w_per_m2k=5)
     pandapipes.create_pipe_from_parameters(net, j2, j3, 2.5, d, k_mm=.1, sections=3,
                                            alpha_w_per_m2k=5)
-    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type="pt")
-    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=350, type="pt")
+    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type_="pt")
+    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=350, type_="pt")
     pandapipes.create_sink(net, j3, mdot_kg_per_s=1)
 
     pandapipes.create_fluid_from_lib(net, "water", overwrite=True)
@@ -219,8 +219,8 @@ def test_temperature_internal_nodes_tee_2zu_1ab_direction_changed(use_numba):
     j1 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     j2 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     j3 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
-    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type="pt")
-    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=350, type="pt")
+    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type_="pt")
+    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=350, type_="pt")
     pandapipes.create_sink(net, j3, mdot_kg_per_s=1)
 
     pandapipes.create_pipe_from_parameters(net, j0, j2, 2.5, d, k_mm=.1, sections=5,
@@ -263,8 +263,8 @@ def test_temperature_internal_nodes_2zu_2ab(use_numba):
     j2 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     j3 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
     j4 = pandapipes.create_junction(net, pn_bar=5, tfluid_k=283)
-    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type="pt")
-    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=300, type="pt")
+    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type_="pt")
+    pandapipes.create_ext_grid(net, j1, p_bar=5, t_k=300, type_="pt")
     pandapipes.create_sink(net, j3, mdot_kg_per_s=1)
     pandapipes.create_sink(net, j4, mdot_kg_per_s=1)
 
@@ -315,7 +315,7 @@ def test_temperature_internal_nodes_masche_1load(use_numba):
     pandapipes.create_pipe_from_parameters(net, j3, j2, 2.5, d, k_mm=.1, sections=6,
                                            alpha_w_per_m2k=5)
 
-    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type="pt")
+    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type_="pt")
     pandapipes.create_sink(net, j2, mdot_kg_per_s=1)
 
     pandapipes.create_fluid_from_lib(net, "water", overwrite=True)
@@ -359,7 +359,7 @@ def test_temperature_internal_nodes_masche_1load_changed_direction(use_numba):
 
     pandapipes.create_fluid_from_lib(net, "water", overwrite=True)
 
-    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type="pt")
+    pandapipes.create_ext_grid(net, j0, p_bar=5, t_k=350, type_="pt")
     pandapipes.create_sink(net, j3, mdot_kg_per_s=1)
 
     max_iter_hyd = 5 if use_numba else 5

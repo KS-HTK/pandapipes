@@ -2,12 +2,16 @@
 # and Energy System Technology (IEE), Kassel, and University of Kassel. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
+import re
+import ast
 import numpy as np
 import pandas as pd
 from pandapower.plotting.collections import _create_node_collection, \
     _create_node_element_collection, _create_line2d_collection, _create_complex_branch_collection, \
     add_cmap_to_collection, coords_from_node_geodata
 from pandapower.plotting.patch_makers import load_patches, ext_grid_patches
+from pandas import Series
+
 from pandapipes.plotting.patch_makers import valve_patches, source_patches, heat_exchanger_patches, \
     pump_patches, pressure_control_patches, compressor_patches, flow_control_patches
 from pandapower.plotting.plotting_toolbox import get_index_array
@@ -100,10 +104,10 @@ def create_pipe_collection(net, pipes=None, pipe_geodata=None, junction_geodata=
     :param pipes: The pipes for which the collections are created. If None, all pipes
             in the network are considered.
     :type pipes: list, default None
-    :param pipe_geodata: Coordinates to use for plotting. If None, net["pipe_geodata"] is used.
+    :param pipe_geodata: Coordinates to use for plotting. If None, net.pipe["geo"] is used.
     :type pipe_geodata: pandas.DataFrame, default None
     :param junction_geodata: Coordinates to use for plotting in case of use_junction_geodata=True.\
-        If None, net["junction_geodata"] is used.
+        If None, net.junction["geo"] is used.
     :type junction_geodata: pandas.DataFrame, default None
     :param use_junction_geodata: Defines whether junction or pipe geodata are used.
     :type use_junction_geodata: bool, default False
@@ -125,43 +129,61 @@ def create_pipe_collection(net, pipes=None, pipe_geodata=None, junction_geodata=
     :param kwargs: Keyword arguments are passed to the patch function and the patch maker
     :return: lc (matplotlib line collection) - line collection for pipes
     """
-    if use_junction_geodata is False and net.pipe_geodata.empty:
+
+    def _get_coords_from_geojson(gj_str):
+        pattern = r'"coordinates"\s*:\s*((?:\[(?:\[[^]]+],?\s*)+\])|\[[^]]+\])'
+        matches = re.findall(pattern, gj_str)
+
+        if not matches:
+            return None
+        if len(matches) > 1:
+            raise ValueError("More than one match found in GeoJSON string")
+        for m in matches:
+            return ast.literal_eval(m)
+        return None
+
+    if (use_junction_geodata is False and
+            pipe_geodata is None and
+            ("geo" not in net.pipe.columns or net.pipe.geo.isnull().all())):
         # if bus geodata is available, but no line geodata
-        logger.warning("use_junction_geodata is automatically set to True, since net.pipe_geodata "
-                       "is empty.")
+        logger.warning("use_junction_geodata is automatically set to True, since net.pipe.geo is empty.")
         use_junction_geodata = True
 
     pipes = get_index_array(pipes, net.pipe.index)
     if len(pipes) == 0:
         return None
 
-    if use_junction_geodata:
-        coords, pipes_with_geo = coords_from_node_geodata(
-            pipes, net.pipe.from_junction.loc[pipes].values, net.pipe.to_junction.loc[pipes].values,
-            junction_geodata if junction_geodata is not None else net["junction_geodata"], "pipe",
-            "Junction")
-    else:
-        if pipe_geodata is None:
-            pipe_geodata = net.pipe_geodata
-        pipes_with_geo = pipes[np.isin(pipes, pipe_geodata.index.values)]
-        coords = list(pipe_geodata.loc[pipes_with_geo, "coords"])
-        pipes_without_geo = set(pipes) - set(pipes_with_geo)
-        if pipes_without_geo:
-            logger.warning("Could not plot pipes %s. Pipe geodata is missing for those pipes!"
-                           % pipes_without_geo)
+    pipe_geodata: Series[str] = pipe_geodata if pipe_geodata is not None else net.pipe.geo
+    pipes_without_geo = pipe_geodata.index[pipe_geodata.isna()]
 
-    if len(pipes_with_geo) == 0:
-        return None
+    if use_junction_geodata or not pipes_without_geo.empty:
+        elem_indices = pipes if use_junction_geodata else pipes_without_geo
+        geos, pipes_with_geo = coords_from_node_geodata(
+            element_indices=elem_indices,
+            from_nodes=net.pipe.loc[elem_indices, 'from_junction'].values,
+            to_nodes=net.pipe.loc[pipes, 'to_junction'].values,
+            node_geodata=junction_geodata if junction_geodata is not None else net.junction.geo,
+            table_name="pipe",
+            node_name="Junction"
+        )
 
-    infos = [infofunc(pipe) for pipe in pipes_with_geo] if infofunc else []
+        pipe_geodata = pipe_geodata.combine_first(pd.Series(geos, index=pipes_with_geo))
 
-    lc = _create_line2d_collection(coords, pipes_with_geo, infos=infos, picker=picker, **kwargs)
+    pipes_without_geo = pipe_geodata.index[pipe_geodata.isna()]
+    if not pipes_without_geo.empty:
+        logger.warning(f"Could not plot pipes {pipes_without_geo}. Junction geodata is missing for those pipes!")
+
+    infos = [infofunc(pipe) for pipe in pipe_geodata] if infofunc else []
+
+    coords = [_get_coords_from_geojson(pipe_gj) for pipe_gj in pipe_geodata]
+
+    lc = _create_line2d_collection(coords, pipe_geodata.index, infos, picker, **kwargs)
 
     if cmap is not None:
         if z is None:
-            z = net.res_pipe.v_mean_m_per_s.loc[pipes_with_geo]
+            z = net.res_pipe.v_mean_m_per_s.loc[pipe_geodata.index]
         elif isinstance(z, pd.Series):
-            z = z.loc[pipes_with_geo]
+            z = z.loc[pipe_geodata.index]
         add_cmap_to_collection(lc, cmap, norm, z, cbar_title, clim=clim)
 
     return lc

@@ -28,7 +28,7 @@ def release_control_test_network(max_iter_hyd, save=False):
 
     # junctions
     pp.create_junction(net, pn_bar=3, tfluid_k=293, height_m=0, name="Junction 0", index=None,
-                       in_service=True, type="junction", geodata=None)
+                       in_service=True, type_="junction", geodata=None)
     pp.create_junction(net, pn_bar=3, tfluid_k=293, height_m=0, name="Junction 1")
     pp.create_junction(net, pn_bar=3, tfluid_k=293, height_m=0, name="Junction 2")
     pp.create_junction(net, pn_bar=3, tfluid_k=293, height_m=0, name="Junction 3")
@@ -46,7 +46,7 @@ def release_control_test_network(max_iter_hyd, save=False):
     pp.create_pipe_from_parameters(
         net, from_junction=0, to_junction=8, length_km=3, diameter_m=0.01, k_mm=1,
         loss_coefficient=0, sections=10, alpha_w_per_m2k=10, text_k=293, qext_w=0., name="Pipe 0",
-        index=None, geodata=None, in_service=True, type="pipe")
+        index=None, geodata=None, in_service=True, type_="pipe")
     pp.create_pipe_from_parameters(
         net, 9, 2, length_km=6, diameter_m=0.075, k_mm=.1, sections=10, alpha_w_per_m2k=3,
         name="Pipe 1")
@@ -71,12 +71,12 @@ def release_control_test_network(max_iter_hyd, save=False):
 
     # external grids
     pp.create_ext_grid(net, junction=0, p_bar=3, t_k=300, name="External Grid 0", in_service=True,
-                       index=None, type="pt")
-    pp.create_ext_grid(net, 1, p_bar=5, t_k=350, name="External Grid 1", type="pt")
+                       index=None, type_="pt")
+    pp.create_ext_grid(net, 1, p_bar=5, t_k=350, name="External Grid 1", type_="pt")
 
     # sinks
     pp.create_sink(net, junction=2, mdot_kg_per_s=0.2, scaling=1., name="Sink 0", index=None,
-                   in_service=True, type="sink")
+                   in_service=True, type_="sink")
     pp.create_sink(net, 3, mdot_kg_per_s=0.1, name="Sink 1")
     pp.create_sink(net, 4, mdot_kg_per_s=0.5, name="Sink 2")
     pp.create_sink(net, 5, mdot_kg_per_s=0.07, name="Sink 3")
@@ -85,14 +85,14 @@ def release_control_test_network(max_iter_hyd, save=False):
 
     # sources
     pp.create_source(net, junction=8, mdot_kg_per_s=0.1, scaling=1., name="Source 0", index=None,
-                     in_service=True, type="source")
+                     in_service=True, type_="source")
     pp.create_source(net, junction=9, mdot_kg_per_s=0.03, name="Source 1")
     pp.create_source(net, junction=10, mdot_kg_per_s=0.04, name="Source 2")
     pp.create_source(net, junction=11, mdot_kg_per_s=0.09, name="Source 3")
 
     # valves
     pp.create_valve(net, from_junction=8, to_junction=9, diameter_m=0.1, opened=True,
-                    loss_coefficient=0, name="Valve 0", index=None, type="valve")
+                    loss_coefficient=0, name="Valve 0", index=None, type_="valve")
     pp.create_valve(net, 9, 4, diameter_m=0.05, opened=True, name="Valve 1")
 
     # pump
@@ -100,7 +100,7 @@ def release_control_test_network(max_iter_hyd, save=False):
                                    pressure_list=[6.1, 5.8, 4],
                                    flowrate_list=[0, 19, 83], reg_polynomial_degree=2,
                                    poly_coefficents=None, name=None, index=None, in_service=True,
-                                   type="pump")
+                                   type_="pump")
 
     # circulation pump mass
     pp.create_circ_pump_const_mass_flow(
@@ -156,7 +156,7 @@ def release_control_test_network_water(max_iter_hyd, save=False):
     # junctions
     pp.create_junctions(net, 14, pn_bar=3, tfluid_k=293, height_m=0,
                         name=["Junction %d" % i for i in range(14)], in_service=True,
-                        type="junction", geodata=None)
+                        type_="junction", geodata=None)
 
     # pipes
     pp.create_pipe_from_parameters(
@@ -187,12 +187,12 @@ def release_control_test_network_water(max_iter_hyd, save=False):
 
     # external grids
     pp.create_ext_grid(net, junction=0, p_bar=3, t_k=300, name="External Grid 0", in_service=True,
-                       index=None, type="pt")
-    pp.create_ext_grid(net, 1, p_bar=5, t_k=350, name="External Grid 1", type="pt")
+                       index=None, type_="pt")
+    pp.create_ext_grid(net, 1, p_bar=5, t_k=350, name="External Grid 1", type_="pt")
 
     # sinks
     pp.create_sink(net, junction=2, mdot_kg_per_s=0.2, scaling=1., name="Sink 0", index=None,
-                   in_service=True, type="sink")
+                   in_service=True, type_="sink")
     pp.create_sink(net, 3, mdot_kg_per_s=0.1, name="Sink 1")
     pp.create_sink(net, 4, mdot_kg_per_s=0.5, name="Sink 2")
     pp.create_sink(net, 6, mdot_kg_per_s=0.09, name="Sink 3")
@@ -200,7 +200,7 @@ def release_control_test_network_water(max_iter_hyd, save=False):
 
     # sources
     pp.create_source(net, junction=8, mdot_kg_per_s=0.1, scaling=1., name="Source 0", index=None,
-                     in_service=True, type="source")
+                     in_service=True, type_="source")
     pp.create_source(net, junction=9, mdot_kg_per_s=0.03, name="Source 1")
     pp.create_source(net, junction=10, mdot_kg_per_s=0.04, name="Source 2")
     pp.create_source(net, junction=11, mdot_kg_per_s=0.09, name="Source 3")
@@ -210,7 +210,7 @@ def release_control_test_network_water(max_iter_hyd, save=False):
 
     # valves
     pp.create_valve(net, from_junction=8, to_junction=9, diameter_m=0.1, opened=True,
-                    loss_coefficient=0, name="Valve 0", index=None, type="valve")
+                    loss_coefficient=0, name="Valve 0", index=None, type_="valve")
     pp.create_valve(net, 9, 4, diameter_m=0.05, opened=True, name="Valve 1")
 
     # pump
@@ -218,25 +218,25 @@ def release_control_test_network_water(max_iter_hyd, save=False):
                                    pressure_list=[6.1, 5.8, 4],
                                    flowrate_list=[0, 19, 83], reg_polynomial_degree=2,
                                    poly_coefficents=None, name=None, index=None, in_service=True,
-                                   type="pump")
+                                   type_="pump")
 
     # circulation pump mass
     pp.create_circ_pump_const_mass_flow(
         net, return_junction=3, flow_junction=4, p_flow_bar=6, mdot_flow_kg_per_s=0.2, t_flow_k=290,
-        name="Circ. Pump Mass", index=None, in_service=True, type="pt")
+        name="Circ. Pump Mass", index=None, in_service=True, type_="pt")
 
     # circulation pump pressure
     pp.create_circ_pump_const_pressure(
         net, return_junction=11, flow_junction=5, p_flow_bar=5, plift_bar=2, t_flow_k=290,
-        name="Circ. Pump Pressure", index=None, in_service=True, type="pt")
+        name="Circ. Pump Pressure", index=None, in_service=True, type_="pt")
 
     # heat exchanger
     pp.create_heat_exchanger(
         net, from_junction=10, to_junction=6, diameter_m=0.08, qext_w=50, loss_coefficient=0,
-        name="Heat Exchanger 0", index=None, in_service=True, type="heat_exchanger")
+        name="Heat Exchanger 0", index=None, in_service=True, type_="heat_exchanger")
     pp.create_heat_exchanger(
         net, from_junction=4, to_junction=10, diameter_m=0.08, qext_w=28000, loss_coefficient=0,
-        name="Heat Exchanger 1", index=None, in_service=True, type="heat_exchanger")
+        name="Heat Exchanger 1", index=None, in_service=True, type_="heat_exchanger")
 
     # flow control
     pp.create_flow_control(net, 6, 13, controlled_mdot_kg_per_s=0.2, diameter_m=0.08)
@@ -262,17 +262,17 @@ def release_control_test_network_gas(max_iter_hyd, save=False):
     # HP
     pp.create_junctions(net, 11, pn_bar=16, tfluid_k=283, height_m=0,
                         name=["Junction %d" % i for i in range(11)], in_service=True,
-                        type="junction", geodata=None)
+                        type_="junction", geodata=None)
     # MP
     pp.create_junctions(net, 2, pn_bar=0.7, tfluid_k=283, height_m=0,
                         name=["Junction %d" % (i + 11) for i in range(2)], in_service=True,
-                        type="junction", geodata=None)
+                        type_="junction", geodata=None)
 
     # pipes
     pp.create_pipe_from_parameters(
         net, from_junction=0, to_junction=1, length_km=3, diameter_m=0.1, k_mm=1,
         loss_coefficient=0, sections=10, alpha_w_per_m2k=10, text_k=293, qext_w=0., name="Pipe 0",
-        index=None, geodata=None, in_service=True, type="pipe")
+        index=None, geodata=None, in_service=True, type_="pipe")
     pp.create_pipe_from_parameters(
         net, 2, 3, length_km=6, diameter_m=0.075, k_mm=.1, sections=10, alpha_w_per_m2k=3,
         name="Pipe 1")
@@ -298,12 +298,12 @@ def release_control_test_network_gas(max_iter_hyd, save=False):
 
     # external grids
     pp.create_ext_grid(net, junction=0, p_bar=16, t_k=280, name="External Grid 0", in_service=True,
-                       index=None, type="pt")
-    pp.create_ext_grid(net, 8, p_bar=15, t_k=285, name="External Grid 1", type="pt")
+                       index=None, type_="pt")
+    pp.create_ext_grid(net, 8, p_bar=15, t_k=285, name="External Grid 1", type_="pt")
 
     # sinks
     pp.create_sink(net, junction=2, mdot_kg_per_s=0.12, scaling=1., name="Sink 0", index=None,
-                   in_service=True, type="sink")
+                   in_service=True, type_="sink")
     pp.create_sink(net, 6, mdot_kg_per_s=0.01, name="Sink 1")
     pp.create_sink(net, 7, mdot_kg_per_s=0.02, name="Sink 2")
     pp.create_sink(net, 9, mdot_kg_per_s=0.01, name="Sink 3")
@@ -311,7 +311,7 @@ def release_control_test_network_gas(max_iter_hyd, save=False):
 
     # sources
     pp.create_source(net, junction=1, mdot_kg_per_s=0.02, scaling=1., name="Source 0", index=None,
-                     in_service=True, type="source")
+                     in_service=True, type_="source")
     pp.create_source(net, junction=5, mdot_kg_per_s=0.01, name="Source 1")
     pp.create_source(net, junction=10, mdot_kg_per_s=0.04, name="Source 3")
 
@@ -320,7 +320,7 @@ def release_control_test_network_gas(max_iter_hyd, save=False):
 
     # valves
     pp.create_valve(net, from_junction=1, to_junction=2, diameter_m=0.1, opened=True,
-                    loss_coefficient=0, name="Valve 0", index=None, type="valve")
+                    loss_coefficient=0, name="Valve 0", index=None, type_="valve")
     pp.create_valve(net, 2, 5, diameter_m=0.05, opened=True, name="Valve 1")
 
     # flow control

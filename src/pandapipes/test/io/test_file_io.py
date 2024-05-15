@@ -95,10 +95,6 @@ def test_json(tmp_path):
     net2 = pandapipes.from_json(filename)
 
     # check if saved and loaded versions are identical
-    assert_frame_equal(net.pipe_geodata, net2.pipe_geodata)
-    del net.pipe_geodata
-    del net2.pipe_geodata
-
     assert pandapipes.nets_equal(net, net2), "Error in comparison after saving to JSON."
 
 
@@ -143,10 +139,6 @@ def test_json_string():
     net2 = pandapipes.from_json_string(json_string)
 
     # check if saved and loaded versions are identical
-    assert_frame_equal(net.pipe_geodata, net2.pipe_geodata)
-    del net.pipe_geodata
-    del net2.pipe_geodata
-
     assert pandapipes.nets_equal(net, net2), \
         "Error in comparison after saving to JSON string."
 

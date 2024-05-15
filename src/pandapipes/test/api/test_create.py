@@ -270,13 +270,12 @@ def test_create_junctions(create_empty_net):
     j3 = pandapipes.create_junctions(net, 3, 1, 293, geodata=geodata)
 
     assert len(net.junction) == 9
-    assert len(net.junction_geodata) == 6
 
     for i in j2:
-        assert net.junction_geodata.at[i, 'x'] == 10
-        assert net.junction_geodata.at[i, 'y'] == 20
+        assert net.junction.at[i, 'geo'] == '{"coordinates": [10, 20], "type": "Point"}'
 
-    assert (net.junction_geodata.loc[j3, ['x', 'y']].values == geodata).all()
+    assert ([f'{{"coordinates": [{x}, {y}], "type": "Point"}}' for x, y in geodata] == net.junction.loc[
+        j3, 'geo'].values).all()
     assert (net.junction.pn_bar.values == 1).all()
 
     # no way of creating junctions with not matching shape
@@ -291,7 +290,6 @@ def test_create_pipes_from_parameters(create_empty_net):
     j2 = pandapipes.create_junction(net, 3, 273)
     pandapipes.create_pipes_from_parameters(net, [j1, j1], [j2, j2], 2, 0.2, sections=[1, 4])
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 0
     assert sum(net.pipe.sections) == 5
     assert len(set(net.pipe.length_km)) == 1
 
@@ -299,32 +297,32 @@ def test_create_pipes_from_parameters(create_empty_net):
     net = copy.deepcopy(create_empty_net)
     j1 = pandapipes.create_junction(net, 3, 273)
     j2 = pandapipes.create_junction(net, 3, 273)
+    geodata = [[(1, 1), (2, 2), (3, 3)], [(1, 1), (1, 2)]]
     p = pandapipes.create_pipes_from_parameters(
         net, [j1, j1], [j2, j2], [1.5, 3], 0.5,
-        geodata=[[(1, 1), (2, 2), (3, 3)], [(1, 1), (1, 2)]])
+        geodata=geodata)
 
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 2
-    assert net.pipe_geodata.at[p[0], "coords"] == [(1, 1), (2, 2), (3, 3)]
-    assert net.pipe_geodata.at[p[1], "coords"] == [(1, 1), (1, 2)]
+    assert net.pipe.at[p[0], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[0]]}, "type": "LineString"}}'
+    assert net.pipe.at[p[1], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[1]]}, "type": "LineString"}}'
 
     # setting params as single value
     net = copy.deepcopy(create_empty_net)
     j1 = pandapipes.create_junction(net, 3, 273)
     j2 = pandapipes.create_junction(net, 3, 273)
+    geodata = [(10, 10), (20, 20)]
     p = pandapipes.create_pipes_from_parameters(
         net, [j1, j1], [j2, j2], length_km=5, diameter_m=0.8, in_service=False,
-        geodata=[(10, 10), (20, 20)], name="test", k_mm=0.01, loss_coefficient=0.3, sections=2,
+        geodata=geodata, name="test", k_mm=0.01, loss_coefficient=0.3, sections=2,
         alpha_w_per_m2k=0.1, text_k=273, qext_w=0.01)
 
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 2
     assert net.pipe.length_km.at[p[0]] == 5
     assert net.pipe.length_km.at[p[1]] == 5
-    assert net.pipe.at[p[0], "in_service"] == False  # is actually <class 'numpy.bool_'>
-    assert net.pipe.at[p[1], "in_service"] == False  # is actually <class 'numpy.bool_'>
-    assert net.pipe_geodata.at[p[0], "coords"] == [(10, 10), (20, 20)]
-    assert net.pipe_geodata.at[p[1], "coords"] == [(10, 10), (20, 20)]
+    assert not net.pipe.at[p[0], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert not net.pipe.at[p[1], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert net.pipe.at[p[0], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata]}, "type": "LineString"}}'
+    assert net.pipe.at[p[1], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata]}, "type": "LineString"}}'
     assert net.pipe.at[p[0], "name"] == "test"
     assert net.pipe.at[p[1], "name"] == "test"
     assert net.pipe.at[p[0], "k_mm"] == 0.01
@@ -346,21 +344,21 @@ def test_create_pipes_from_parameters(create_empty_net):
     net = copy.deepcopy(create_empty_net)
     j1 = pandapipes.create_junction(net, 3, 273)
     j2 = pandapipes.create_junction(net, 3, 273)
+    geodata = [[(10, 10), (20, 20)], [(100, 10), (200, 20)]]
     p = pandapipes.create_pipes_from_parameters(
         net, [j1, j1], [j2, j2], length_km=[1, 5], diameter_m=[0.8, 0.7],
         in_service=[True, False],
-        geodata=[[(10, 10), (20, 20)], [(100, 10), (200, 20)]], name=["p1", "p2"],
+        geodata=geodata, name=["p1", "p2"],
         k_mm=[0.01, 0.02], loss_coefficient=[0.3, 0.5], sections=[1, 2],
         alpha_w_per_m2k=[0.1, 0.2], text_k=[273, 274], qext_w=[0.01, 0.02])
 
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 2
     assert net.pipe.at[p[0], "length_km"] == 1
     assert net.pipe.at[p[1], "length_km"] == 5
-    assert net.pipe.at[p[0], "in_service"] == True  # is actually <class 'numpy.bool_'>
-    assert net.pipe.at[p[1], "in_service"] == False  # is actually <class 'numpy.bool_'>
-    assert net.pipe_geodata.at[p[0], "coords"] == [(10, 10), (20, 20)]
-    assert net.pipe_geodata.at[p[1], "coords"] == [(100, 10), (200, 20)]
+    assert net.pipe.at[p[0], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert not net.pipe.at[p[1], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert net.pipe.at[p[0], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[0]]}, "type": "LineString"}}'
+    assert net.pipe.at[p[1], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[1]]}, "type": "LineString"}}'
     assert net.pipe.at[p[0], "name"] == "p1"
     assert net.pipe.at[p[1], "name"] == "p2"
     assert net.pipe.at[p[0], "diameter_m"] == 0.8
@@ -409,7 +407,6 @@ def test_create_pipes(create_empty_net):
     j2 = pandapipes.create_junction(net, 3, 273)
     pandapipes.create_pipes(net, [j1, j1], [j2, j2], "80_GGG", 2, sections=[1, 4])
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 0
     assert sum(net.pipe.sections) == 5
     assert np.all(net.pipe.std_type == ["80_GGG"] * 2)
     assert len(set(net.pipe.length_km)) == 1
@@ -418,31 +415,31 @@ def test_create_pipes(create_empty_net):
     net = copy.deepcopy(create_empty_net)
     j1 = pandapipes.create_junction(net, 3, 273)
     j2 = pandapipes.create_junction(net, 3, 273)
+    geodata = [[(1, 1), (2, 2), (3, 3)], [(1, 1), (1, 2)]]
     p = pandapipes.create_pipes(net, [j1, j1], [j2, j2], "80_GGG", [1.5, 3],
-                                geodata=[[(1, 1), (2, 2), (3, 3)], [(1, 1), (1, 2)]])
+                                geodata=geodata)
 
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 2
-    assert net.pipe_geodata.at[p[0], "coords"] == [(1, 1), (2, 2), (3, 3)]
-    assert net.pipe_geodata.at[p[1], "coords"] == [(1, 1), (1, 2)]
+    assert net.pipe.at[p[0], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[0]]}, "type": "LineString"}}'
+    assert net.pipe.at[p[1], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[1]]}, "type": "LineString"}}'
 
     # setting params as single value
     net = copy.deepcopy(create_empty_net)
     j1 = pandapipes.create_junction(net, 3, 273)
     j2 = pandapipes.create_junction(net, 3, 273)
+    geodata = [(10, 10), (20, 20)]
     p = pandapipes.create_pipes(
         net, [j1, j1], [j2, j2], std_type="80_GGG", length_km=5, in_service=False,
-        geodata=[(10, 10), (20, 20)], name="test", k_mm=0.01, loss_coefficient=0.3, sections=2,
+        geodata=geodata, name="test", k_mm=0.01, loss_coefficient=0.3, sections=2,
         alpha_w_per_m2k=0.1, text_k=273, qext_w=0.01)
 
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 2
     assert net.pipe.length_km.at[p[0]] == 5
     assert net.pipe.length_km.at[p[1]] == 5
-    assert net.pipe.at[p[0], "in_service"] == False  # is actually <class 'numpy.bool_'>
-    assert net.pipe.at[p[1], "in_service"] == False  # is actually <class 'numpy.bool_'>
-    assert net.pipe_geodata.at[p[0], "coords"] == [(10, 10), (20, 20)]
-    assert net.pipe_geodata.at[p[1], "coords"] == [(10, 10), (20, 20)]
+    assert not net.pipe.at[p[0], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert not net.pipe.at[p[1], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert net.pipe.at[p[0], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata]}, "type": "LineString"}}'
+    assert net.pipe.at[p[1], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata]}, "type": "LineString"}}'
     assert net.pipe.at[p[0], "name"] == "test"
     assert net.pipe.at[p[1], "name"] == "test"
     assert net.pipe.at[p[0], "std_type"] == "80_GGG"
@@ -466,20 +463,20 @@ def test_create_pipes(create_empty_net):
     net = copy.deepcopy(create_empty_net)
     j1 = pandapipes.create_junction(net, 3, 273)
     j2 = pandapipes.create_junction(net, 3, 273)
+    geodata = [[(10, 10), (20, 20)], [(100, 10), (200, 20)]]
     p = pandapipes.create_pipes(
         net, [j1, j1], [j2, j2], std_type="80_GGG", length_km=[1, 5], in_service=[True, False],
-        geodata=[[(10, 10), (20, 20)], [(100, 10), (200, 20)]], name=["p1", "p2"],
+        geodata=geodata, name=["p1", "p2"],
         k_mm=[0.01, 0.02], loss_coefficient=[0.3, 0.5], sections=[1, 2],
         alpha_w_per_m2k=[0.1, 0.2], text_k=[273, 274], qext_w=[0.01, 0.02])
 
     assert len(net.pipe) == 2
-    assert len(net.pipe_geodata) == 2
     assert net.pipe.at[p[0], "length_km"] == 1
     assert net.pipe.at[p[1], "length_km"] == 5
-    assert net.pipe.at[p[0], "in_service"] == True  # is actually <class 'numpy.bool_'>
-    assert net.pipe.at[p[1], "in_service"] == False  # is actually <class 'numpy.bool_'>
-    assert net.pipe_geodata.at[p[0], "coords"] == [(10, 10), (20, 20)]
-    assert net.pipe_geodata.at[p[1], "coords"] == [(100, 10), (200, 20)]
+    assert net.pipe.at[p[0], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert not net.pipe.at[p[1], "in_service"]  # is actually <class 'numpy.bool_'>
+    assert net.pipe.at[p[0], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[0]]}, "type": "LineString"}}'
+    assert net.pipe.at[p[1], "geo"] == f'{{"coordinates": {[[x, y] for x, y in geodata[1]]}, "type": "LineString"}}'
     assert net.pipe.at[p[0], "name"] == "p1"
     assert net.pipe.at[p[1], "name"] == "p2"
     assert net.pipe.at[p[0], "std_type"] == "80_GGG"
@@ -671,7 +668,7 @@ def test_create_pressure_controls(create_empty_net):
     j1 = pandapipes.create_junction(net, 3, 273)
     j2 = pandapipes.create_junction(net, 3, 273)
     pc = pandapipes.create_pressure_controls(
-        net, [j1, j1], [j2, j2],  [j2, j2], controlled_p_bar=[3, 2.9], in_service=[True, False],
+        net, [j1, j1], [j2, j2], [j2, j2], controlled_p_bar=[3, 2.9], in_service=[True, False],
         name=["test1", "test2"], new_col=[0.01, 0.1], type=["pc1", "pc2"], index=[1, 5])
 
     assert len(net.press_control) == 2

@@ -38,7 +38,7 @@ def create_test_net():
     j6 = pandapipes.create_junction(net, 1, 293.15)
     j7 = pandapipes.create_junction(net, 1, 293.15, in_service=False)
 
-    pandapipes.create_ext_grid(net, j1, 1, 285.15, type="pt")
+    pandapipes.create_ext_grid(net, j1, 1, 285.15, type_="pt")
 
     pandapipes.create_pipe_from_parameters(net, j1, j2, 0.1, 0.1, sections=1, alpha_w_per_m2k=5)
     pandapipes.create_pipe_from_parameters(net, j2, j3, 0.1, 0.1, sections=2, alpha_w_per_m2k=5,
@@ -76,9 +76,9 @@ def complex_heat_connectivity_grid():
     j9 = pandapipes.create_junction(net, 1, 320.15, index=9)
     j10 = pandapipes.create_junction(net, 1, 320.15, index=10)
 
-    pandapipes.create_ext_grid(net, j1, 1, 320.15, type="p", index=5)
-    pandapipes.create_ext_grid(net, j7, 1, 320.15, type="t", index=2)
-    pandapipes.create_ext_grid(net, j10, 1, 320.15, type="pt", index=1)
+    pandapipes.create_ext_grid(net, j1, 1, 320.15, type_="p", index=5)
+    pandapipes.create_ext_grid(net, j7, 1, 320.15, type_="t", index=2)
+    pandapipes.create_ext_grid(net, j10, 1, 320.15, type_="pt", index=1)
 
     pandapipes.create_pipe_from_parameters(net, j1, j2, 0.1, 0.1, alpha_w_per_m2k=5, index=3)
     pandapipes.create_pipe_from_parameters(net, j1, j3, 0.1, 0.1, alpha_w_per_m2k=5, index=4)
@@ -131,13 +131,13 @@ def create_net_wo_ext_grid():
     pandapipes.create_fluid_from_lib(net, "hgas", overwrite=True)
     pandapipes.create_junction(net, index=3, pn_bar=16, tfluid_k=283, height_m=0,
                                name="Junction 3", in_service=True,
-                               type="junction", geodata=(0, 0))
+                               type_="junction", geodata=(0, 0))
     pandapipes.create_junction(net, index=9, pn_bar=16, tfluid_k=283, height_m=0,
                                name="Junction 9", in_service=True,
-                               type="junction", geodata=(1, 0))
+                               type_="junction", geodata=(1, 0))
     pandapipes.create_junction(net, index=10, pn_bar=16, tfluid_k=283, height_m=0,
                                name="Junction 10", in_service=True,
-                               type="junction", geodata=(2, 0))
+                               type_="junction", geodata=(2, 0))
     pandapipes.create_pipe_from_parameters(net, 9, 10, length_km=1, diameter_m=0.03, k_mm=.1, sections=10,
                                            alpha_w_per_m2k=1, name="Pipe 6")
     pandapipes.create_sink(net, 9, mdot_kg_per_s=0.01, name="Sink 3")

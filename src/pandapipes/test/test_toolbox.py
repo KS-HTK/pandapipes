@@ -142,7 +142,6 @@ def create_net_changed_indices(base_net_is_wo_pumps):
     junction_lookup = dict(zip(net["junction"].index.values, new_junction_indices))
 
     net.junction.index = new_junction_indices
-    net.junction_geodata.index = new_junction_indices
     for n_el in ["sink", "source", "ext_grid"]:
         net[n_el].junction = np.array([junction_lookup[k] for k in net[n_el].junction], dtype="int")
     for br_el in ["pipe", "valve", "heat_exchanger", "pump", "press_control"]:
@@ -153,7 +152,6 @@ def create_net_changed_indices(base_net_is_wo_pumps):
         [junction_lookup[k] for k in net.press_control.controlled_junction], dtype="int")
 
     net.pipe.index = new_pipe_indices
-    net.pipe_geodata.index = new_pipe_indices
     net.valve.index = new_valve_indices
     net.pump.index = new_pump_indices
     net.heat_exchanger.index = new_hxc_indices
@@ -207,7 +205,6 @@ def test_fuse_junctions(create_net_changed_indices):
     pandapipes.fuse_junctions(net, j1, j2)
     new_junction_index = np.array([j for j in junction_index if j != j2])
     assert np.all(net.junction.index.values == new_junction_index)
-    assert np.all(net.junction_geodata.index.values == new_junction_index)
     for comp, junc_dict in previous_junctions.items():
         for col, junctions in junc_dict.items():
             assert np.all(net[comp][col] == junctions.replace({j2: j1}))
