@@ -12,6 +12,7 @@ import pandapipes
 import pandapipes.plotting as plot
 from pandapipes.converter.stanet.valve_pipe_component.create_valve_pipe import create_valve_pipe_from_parameters
 from pandapipes.converter.stanet.valve_pipe_component.valve_pipe_plotting import create_valve_pipe_collection
+from pandapipes.plotting.collections import _get_coords_from_geojson
 from pandapipes.test.test_toolbox import base_net_is_with_pumps
 
 
@@ -59,7 +60,7 @@ def test_collection_lengths():
                   == net.pipe.index.values.astype(np.int64))
     assert len(pipe_coll_direct.get_paths()) == len(net.pipe)
     assert all([len(p) == 2 for p in pipe_coll_direct.get_paths()])
-    assert all([len(p) == len(net.pipe_geodata.coords.iloc[i])
+    assert all([len(p) == len(_get_coords_from_geojson(net.pipe.geo.iloc[i]))
                 for i, p in enumerate(pipe_coll_real.get_paths())])
 
     junction_coll = plot.create_junction_collection(net)
@@ -97,7 +98,7 @@ def test_collections2(base_net_is_with_pumps):
                   == net.pipe.index.values.astype(np.int64))
     assert len(pipe_coll_direct.get_paths()) == len(net.pipe)
     assert all([len(p) == 2 for p in pipe_coll_direct.get_paths()])
-    assert all([len(p) == len(net.pipe_geodata.coords.iloc[i])
+    assert all([len(p) == len(_get_coords_from_geojson(net.pipe.geo.iloc[i]))
                 for i, p in enumerate(pipe_coll_real.get_paths())])
     pipe_coll2 = plot.create_pipe_collection(net, pipes=[2, 4])
     assert len(pipe_coll2.get_paths()) == 2

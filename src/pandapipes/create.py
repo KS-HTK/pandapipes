@@ -499,7 +499,7 @@ def create_pipe_from_parameters(net, from_junction, to_junction, length_km, diam
     :param geodata: The coordinates of the pipe. The first row should be the coordinates of\
             junction a and the last should be the coordinates of junction b. The points in the\
             middle represent the bending points of the pipe
-    :type geodata: array, shape= (,2L), default None
+    :type geodata: array, shape= (,2), default None
     :param in_service: True for in service, false for out of service
     :type in_service: bool, default True
     :param type: An identifier for special types of pipes (e.g. below or above ground)
@@ -531,6 +531,7 @@ def create_pipe_from_parameters(net, from_junction, to_junction, length_km, diam
     _set_entries(net, "pipe", index, **v, **kwargs)
 
     if geodata is not None:
+        geodata = [list(geo) for geo in geodata]
         net.pipe.at[index, "geo"] = f'{{"coordinates": {geodata}, "type": "LineString"}}'
     else:
         net.pipe.at[index, "geo"] = None

@@ -4,6 +4,7 @@
 
 import pytest
 import copy
+import pandas as pd
 from pandapipes.plotting.generic_geodata import create_generic_coordinates
 from pandapipes.test.test_toolbox import base_net_is_with_pumps
 
@@ -18,9 +19,9 @@ except ImportError:
 @pytest.mark.skipif(IGRAPH_INSTALLED is False, reason="Requires igraph.")
 def test_create_generic_coordinates_igraph(base_net_is_with_pumps):
     net = copy.deepcopy(base_net_is_with_pumps)
-    net.junction_geodata.drop(net.junction_geodata.index, inplace=True)
+    net.junction = pd.DataFrame(net.junction.drop(['geo'], axis=1), columns=net.junction.columns)
     create_generic_coordinates(net, library="igraph")
-    assert len(net.junction_geodata) == len(net.junction)
+    assert len(net.junction.geo.dropna()) == len(net.junction)
 
 
 @pytest.mark.xfail(reason="The current implementation is not working properly, as multigraph edges "

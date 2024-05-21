@@ -254,8 +254,8 @@ def create_simple_collections(net, respect_valves=False, respect_in_service=True
     junction_coll = create_junction_collection(net, junc_idx, size=junction_size,
                                                color=junction_color, zorder=10)
 
-    # if bus geodata is available, but no line geodata
-    use_junction_geodata = len(net.pipe_geodata) == 0
+    # if junction geodata is available, but no pipe geodata
+    use_junction_geodata = len(net.pipe.geo.dropna()) == 0
 
     if respect_in_service:
         plot_lines = net.pipe[net.pipe.in_service].index
@@ -269,12 +269,11 @@ def create_simple_collections(net, respect_valves=False, respect_in_service=True
 
     # create ext_grid collections
     if respect_in_service:
-        eg_junctions_with_geo_coordinates = \
-            set(net.ext_grid[net.ext_grid.in_service].junction.values) \
-            & set(net.junction_geodata.index)
+        eg_junctions_with_geo_coordinates = (set(net.ext_grid[net.ext_grid.in_service].junction.values) &
+                                             set(net.junction.geo.dropna().index))
     else:
-        eg_junctions_with_geo_coordinates = set(net.ext_grid.junction.values) \
-                                            & set(net.junction_geodata.index)
+        eg_junctions_with_geo_coordinates = (set(net.ext_grid.junction.values) &
+                                             set(net.junction_geodata.index))
     if len(eg_junctions_with_geo_coordinates) > 0:
         eg_coll = create_junction_collection(
             net, eg_junctions_with_geo_coordinates, patch_type="rect", size=ext_grid_size,

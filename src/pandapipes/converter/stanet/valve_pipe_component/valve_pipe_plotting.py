@@ -4,6 +4,8 @@
 
 from functools import partial
 
+import ast
+import re
 import numpy as np
 import pandas as pd
 from pandapower.plotting.collections import _create_complex_branch_collection, \
@@ -18,6 +20,19 @@ except ImportError:
     import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _get_coords_from_geojson(gj_str):
+    pattern = r'"coordinates"\s*:\s*((?:\[(?:\[[^]]+],?\s*)+\])|\[[^]]+\])'
+    matches = re.findall(pattern, gj_str)
+
+    if not matches:
+        return None
+    if len(matches) > 1:
+        raise ValueError("More than one match found in GeoJSON string")
+    for m in matches:
+        return ast.literal_eval(m)
+    return None
 
 
 def create_valve_pipe_collection(net, valve_pipes=None, valve_pipe_geodata=None, junction_geodata=None,
@@ -63,8 +78,9 @@ def create_valve_pipe_collection(net, valve_pipes=None, valve_pipe_geodata=None,
         coords, valve_pipes_with_geo = coords_from_node_geodata(
             valve_pipes, net.valve_pipe.from_junction.loc[valve_pipes].values,
             net.valve_pipe.to_junction.loc[valve_pipes].values,
-            junction_geodata if junction_geodata is not None else net["junction_geodata"], "valve_pipe",
+            junction_geodata if junction_geodata is not None else net.junction.geo, "valve_pipe",
             "Junction")
+        coords = [_get_coords_from_geojson(data) for data in coords]
     else:
         if valve_pipe_geodata is None:
             valve_pipe_geodata = net.valve_pipe_geodata

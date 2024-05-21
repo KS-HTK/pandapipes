@@ -65,7 +65,7 @@ def build_igraph_from_ppipes(net, junctions=None):
     return g, meshed, roots  # g, (not g.is_dag())
 
 
-def create_generic_coordinates(net, mg=None, library="igraph", geodata_table="junction_geodata",
+def create_generic_coordinates(net, mg=None, library="igraph", geodata_table="junction",
                                junctions=None, overwrite=False):
     """
     This function will add arbitrary geo-coordinates for all junctions based on an analysis of
@@ -104,7 +104,7 @@ def create_generic_coordinates(net, mg=None, library="igraph", geodata_table="ju
         raise ValueError("Unknown library %s - chose 'igraph' or 'networkx'" % library)
 
     if len(coords):
-        net[geodata_table].x = coords[1]
-        net[geodata_table].y = coords[0]
-        net[geodata_table].index = net.junction.index if junctions is None else junctions
+        coords = zip(*coords)
+        coords = [f'{{"coordinates": {geo}, "type": "Point"}}' for geo in coords]
+        net[geodata_table].geo.loc[net.junction.index if junctions is None else junctions] = coords
     return net

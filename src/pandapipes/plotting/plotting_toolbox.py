@@ -2,6 +2,24 @@
 # and Energy System Technology (IEE), Kassel, and University of Kassel. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
+import re
+import ast
+import pandas as pd
+
+
+def _get_coords_from_geojson(gj_str):
+    pattern = r'"coordinates"\s*:\s*((?:\[(?:\[[^]]+],?\s*)+\])|\[[^]]+\])'
+    matches = re.findall(pattern, gj_str)
+
+    if not matches:
+        return None
+    if len(matches) > 1:
+        raise ValueError("More than one match found in GeoJSON string")
+    for m in matches:
+        return ast.literal_eval(m)
+    return None
+
+
 def get_collection_sizes(net, junction_size=1.0, ext_grid_size=1.0, sink_size=1.0, source_size=1.0,
                          valve_size=2.0, pump_size=1.0, heat_exchanger_size=1.0,
                          pressure_control_size=1.0, compressor_size=1.0, flow_control_size=1.0):
@@ -28,8 +46,9 @@ def get_collection_sizes(net, junction_size=1.0, ext_grid_size=1.0, sink_size=1.
     :type heat_exchanger_size: float, default 1.
     :return: sizes (dict) - dictionary containing all scaled sizes
     """
-    mean_distance_between_junctions = sum((net['junction_geodata'].max() - net[
-        'junction_geodata'].min()).dropna() / 200)
+
+    coords = pd.DataFrame(net.junction.geo.apply(_get_coords_from_geojson), columns=['x', 'y'])
+    mean_distance_between_junctions = sum((coords.max() - coords.min()).dropna() / 200)
 
     sizes = {
         "junction": junction_size * mean_distance_between_junctions,
@@ -45,4 +64,3 @@ def get_collection_sizes(net, junction_size=1.0, ext_grid_size=1.0, sink_size=1.
     }
 
     return sizes
-

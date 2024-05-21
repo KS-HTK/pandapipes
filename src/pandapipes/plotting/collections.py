@@ -24,6 +24,19 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+def _get_coords_from_geojson(gj_str):
+    pattern = r'"coordinates"\s*:\s*((?:\[(?:\[[^]]+],?\s*)+\])|\[[^]]+\])'
+    matches = re.findall(pattern, gj_str)
+
+    if not matches:
+        return None
+    if len(matches) > 1:
+        raise ValueError("More than one match found in GeoJSON string")
+    for m in matches:
+        return ast.literal_eval(m)
+    return None
+
+
 def create_junction_collection(net, junctions=None, size=5, patch_type="circle", color=None,
                                z=None, cmap=None, norm=None, infofunc=None, picker=False,
                                junction_geodata=None, cbar_title="Junction Pressure [bar]",
@@ -68,16 +81,20 @@ def create_junction_collection(net, junctions=None, size=5, patch_type="circle",
     junctions = get_index_array(junctions, net.junction.index)
     if len(junctions) == 0:
         return None
+
+    if any(net.junction.geo.isna()):
+        raise AttributeError('net.junction.geo contains NaN values, consider dropping them beforehand.')
+
     if junction_geodata is None:
-        junction_geodata = net["junction_geodata"]
+        junction_geodata = net.junction.geo.apply(_get_coords_from_geojson)
 
     junctions_with_geo = junctions[np.isin(junctions, junction_geodata.index.values)]
     if len(junctions_with_geo) < len(junctions):
-        logger.warning("The following junctions cannot be displayed, as there is no geodata "
-                       "available: %s" % (set(junctions) - set(junctions_with_geo)))
+        logger.warning(
+            f"The following junctions cannot be displayed, as there is no geodata available: {(set(junctions) - set(junctions_with_geo))}"
+        )
 
-    coords = list(zip(junction_geodata.loc[junctions_with_geo, "x"].values,
-                      junction_geodata.loc[junctions_with_geo, "y"].values))
+    coords = junction_geodata.loc[junctions_with_geo].values
 
     infos = [infofunc(junc) for junc in junctions_with_geo] if infofunc is not None else []
 
@@ -130,18 +147,6 @@ def create_pipe_collection(net, pipes=None, pipe_geodata=None, junction_geodata=
     :return: lc (matplotlib line collection) - line collection for pipes
     """
 
-    def _get_coords_from_geojson(gj_str):
-        pattern = r'"coordinates"\s*:\s*((?:\[(?:\[[^]]+],?\s*)+\])|\[[^]]+\])'
-        matches = re.findall(pattern, gj_str)
-
-        if not matches:
-            return None
-        if len(matches) > 1:
-            raise ValueError("More than one match found in GeoJSON string")
-        for m in matches:
-            return ast.literal_eval(m)
-        return None
-
     if (use_junction_geodata is False and
             pipe_geodata is None and
             ("geo" not in net.pipe.columns or net.pipe.geo.isnull().all())):
@@ -153,7 +158,7 @@ def create_pipe_collection(net, pipes=None, pipe_geodata=None, junction_geodata=
     if len(pipes) == 0:
         return None
 
-    pipe_geodata: Series[str] = pipe_geodata if pipe_geodata is not None else net.pipe.geo
+    pipe_geodata: Series[str] = pipe_geodata.loc[pipes] if pipe_geodata is not None else net.pipe.geo.loc[pipes]
     pipes_without_geo = pipe_geodata.index[pipe_geodata.isna()]
 
     if use_junction_geodata or not pipes_without_geo.empty:
@@ -167,7 +172,7 @@ def create_pipe_collection(net, pipes=None, pipe_geodata=None, junction_geodata=
             node_name="Junction"
         )
 
-        pipe_geodata = pipe_geodata.combine_first(pd.Series(geos, index=pipes_with_geo))
+        pipe_geodata = pd.Series(geos, index=pipes_with_geo).combine_first(pipe_geodata)
 
     pipes_without_geo = pipe_geodata.index[pipe_geodata.isna()]
     if not pipes_without_geo.empty:
@@ -222,8 +227,7 @@ def create_sink_collection(net, sinks=None, size=1., infofunc=None, picker=False
     if len(sinks) == 0:
         return None
     infos = [infofunc(i) for i in range(len(sinks))] if infofunc is not None else []
-    node_coords = net.junction_geodata.loc[
-        net.sink.loc[sinks, "junction"].values, ['x', 'y']].values
+    node_coords = net.junction.geo.loc[net.sink.loc[sinks, "junction"].values].apply(_get_coords_from_geojson)
 
     colors = kwargs.pop("color", "k")
     linewidths = kwargs.pop("linewidths", 2.)
@@ -276,8 +280,7 @@ def create_source_collection(net, sources=None, size=1., infofunc=None, picker=F
     if len(sources) == 0:
         return None
     infos = [infofunc(i) for i in range(len(sources))] if infofunc is not None else []
-    node_coords = net.junction_geodata.loc[net.source.loc[sources, "junction"].values,
-                                           ["x", "y"]].values
+    node_coords = net.junction.geo.loc[net.source.loc[sources, "junction"]].apply(_get_coords_from_geojson)
 
     colors = kwargs.pop("color", "k")
     linewidths = kwargs.pop("linewidths", 2.)
@@ -339,7 +342,7 @@ def create_ext_grid_collection(net, size=1., infofunc=None, orientation=0, picke
     patch_edgecolor = kwargs.pop("patch_edgecolor", colors)
     line_color = kwargs.pop("line_color", colors)
 
-    node_coords = net.junction_geodata.loc[ext_grid_junctions, ["x", "y"]].values
+    node_coords = net.junction.geo.loc[ext_grid_junctions].apply(_get_coords_from_geojson).values
     ext_grid_pc, ext_grid_lc = _create_node_element_collection(
         node_coords, ext_grid_patches, size=size, infos=infos, orientation=orientation,
         picker=picker, hatch="XXX", patch_edgecolor=patch_edgecolor, line_color=line_color,
@@ -377,10 +380,11 @@ def create_heat_exchanger_collection(net, heat_ex=None, size=5., junction_geodat
     heat_ex = get_index_array(heat_ex, net.heat_exchanger.index)
     hex_table = net.heat_exchanger.loc[heat_ex]
 
-    coords, hex_with_geo = coords_from_node_geodata(
+    geos, hex_with_geo = coords_from_node_geodata(
         heat_ex, hex_table.from_junction.values, hex_table.to_junction.values,
-        junction_geodata if junction_geodata is not None else net["junction_geodata"],
+        junction_geodata if junction_geodata is not None else net.junction.geo,
         "heat_exchanger", "Junction")
+    coords = [_get_coords_from_geojson(geo) for geo in geos]
 
     if len(hex_with_geo) == 0:
         return None
@@ -416,9 +420,8 @@ def create_valve_collection(net, valves=None, size=5., junction_geodata=None, in
     :type valves: list, default None
     :param size: Patch size
     :type size: float, default 5.
-    :param junction_geodata: Coordinates to use for plotting. If None, net["junction_geodata"] is \
-        used.
-    :type junction_geodata: pandas.DataFrame, default None
+    :param junction_geodata: GeoJSON strings to use for plotting. If None, net.junction.geo is used.
+    :type junction_geodata: pandas.Series, default None
     :param infofunc: infofunction for the patch element
     :type infofunc: function, default None
     :param picker: Picker argument passed to the patch collection
@@ -435,10 +438,16 @@ def create_valve_collection(net, valves=None, size=5., junction_geodata=None, in
 
     valve_table = net.valve.loc[valves]
 
-    coords, valves_with_geo = coords_from_node_geodata(
-        valves, valve_table.from_junction.values, valve_table.to_junction.values,
-        junction_geodata if junction_geodata is not None else net["junction_geodata"], "valve",
-        "Junction")
+    geos, valves_with_geo = coords_from_node_geodata(
+        element_indices=valves,
+        from_nodes=valve_table.from_junction.values,
+        to_nodes=valve_table.to_junction.values,
+        node_geodata=junction_geodata if junction_geodata is not None else net.junction.geo,
+        table_name="valve",
+        node_name="Junction"
+    )
+
+    coords = [_get_coords_from_geojson(geo) for geo in geos]
 
     if len(valves_with_geo) == 0:
         return None
@@ -500,10 +509,11 @@ def create_flow_control_collection(net, flow_controllers=None, size=5., junction
 
     fc_table = net.flow_control.loc[flow_controllers]
 
-    coords, fc_with_geo = coords_from_node_geodata(
+    geos, fc_with_geo = coords_from_node_geodata(
         flow_controllers, fc_table.from_junction.values, fc_table.to_junction.values,
-        junction_geodata if junction_geodata is not None else net["junction_geodata"],
+        junction_geodata if junction_geodata is not None else net.junction.geo,
         "flow_control", "Junction")
+    coords = [_get_coords_from_geojson(geo) for geo in geos]
 
     if len(fc_with_geo) == 0:
         return None
@@ -562,10 +572,11 @@ def create_pump_collection(net, pumps=None, table_name='pump', size=5., junction
     pumps = get_index_array(pumps, net[table_name].index)
     pump_table = net[table_name].loc[pumps]
 
-    coords, pumps_with_geo = coords_from_node_geodata(
+    geos, pumps_with_geo = coords_from_node_geodata(
         pumps, pump_table[fj_col].values, pump_table[tj_col].values,
-        junction_geodata if junction_geodata is not None else net["junction_geodata"], "pump",
+        junction_geodata if junction_geodata is not None else net.junction.geo, "pump",
         "Junction")
+    coords = [_get_coords_from_geojson(geo) for geo in geos]
 
     if len(pumps_with_geo) == 0:
         return None
@@ -615,10 +626,11 @@ def create_pressure_control_collection(net, pcs=None, table_name='press_control'
     pcs = get_index_array(pcs, net[table_name].index)
     pc_table = net[table_name].loc[pcs]
 
-    coords, pcs_with_geo = coords_from_node_geodata(
+    geos, pcs_with_geo = coords_from_node_geodata(
         pcs, pc_table.from_junction.values, pc_table.to_junction.values,
-        junction_geodata if junction_geodata is not None else net["junction_geodata"], table_name,
+        junction_geodata if junction_geodata is not None else net.junction.geo, table_name,
         "Junction")
+    coords = [_get_coords_from_geojson(geo) for geo in geos]
 
     if len(pcs_with_geo) == 0:
         return None
